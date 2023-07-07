@@ -1,21 +1,16 @@
-//home temp measurement MF
+// home temp measurement MF
 #include <Arduino.h>
 #include <DallasTemperature.h>
-#include <LiquidCrystal_I2C.h>
 #include <OneWire.h>
+#include <U8g2lib.h>
 
-#define ONE_WIRE_BUS 8
+#define ONE_WIRE_BUS 2
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
-float T1 = 0;
-float T2 = 0;
+int T1 = 0;
+int T2 = 0;
 
-#define COLUMS 16
-#define ROWS 2
-#define LCD_SPACE_SYMBOL 0x20
-
-LiquidCrystal_I2C lcd(PCF8574_ADDR_A21_A11_A01, 4, 5, 6, 16, 11, 12, 13, 14,
-                      POSITIVE);
+U8G2_SSD1306_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0);
 
 unsigned long Time1 = 0;
 unsigned long Time2 = 0;
@@ -24,33 +19,45 @@ unsigned long Time2 = 0;
 
 void setup() {
   sensors.begin();
-  lcd.begin(16, 2);
+  u8g2.begin();
   pinMode(7, OUTPUT);
-  pinMode(6, INPUT);
+  pinMode(4, INPUT_PULLUP);
+  Serial.begin(115200);
 }
 void loop() {
-  if (millis()>=Time2+czas_opoznienia2) {
-    Time2 += czas_opoznienia2;
-    sensors.requestTemperatures();
-    T1 = sensors.getTempCByIndex(0);
-    T2 = sensors.getTempCByIndex(1);
+  // if (millis() >= Time2 + czas_opoznienia2) {
+  //   Time2 += czas_opoznienia2;
+  if (digitalRead(4) == LOW) {
+    u8g2.setPowerSave(1);
+  } else {
+    u8g2.setPowerSave(0);
   }
 
-  lcd.setCursor(0, 0);
-  lcd.print(T1, 1);
-  lcd.setCursor(4, 0);
-  lcd.print(" na zewnatrz");
-  lcd.setCursor(0, 1);
-  lcd.print(T2, 1);
-  lcd.setCursor(4, 1);
-  lcd.print(" w srodku");
+  sensors.requestTemperatures();
+  T1 = sensors.getTempCByIndex(0);
+  T2 = sensors.getTempCByIndex(1);
+  // }
+  u8g2.firstPage();
+  do {
+    u8g2.setFont(u8g2_font_fub30_tf);
+    u8g2.setFontMode(1);
+    u8g2.setCursor(0, 30);
+    u8g2.print("T1-" + String(T1));
+    u8g2.setCursor(0, 64);
+    u8g2.print("T2-" + String(T2));
 
-  if (digitalRead(6) == HIGH) {
-    if (millis()>=czas_opoznienia1+Time1)
-    {
-      Time1+=czas_opoznienia1;
-      digitalWrite(7, HIGH);
-    }
-  } else
-    digitalWrite(7, LOW);
+  } while (u8g2.nextPage());
+  Serial.println("T1: " + String(T1));
+  Serial.println("T2: " + String(T2));
+
+  delay(1000);
+  /*
+    if (digitalRead(6) == HIGH) {
+      if (millis() >= czas_opoznienia1 + Time1) {
+        Time1 += czas_opoznienia1;
+        digitalWrite(7, HIGH);
+      }
+    } else
+      digitalWrite(7, LOW);
+      */
 }
