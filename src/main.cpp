@@ -9,55 +9,49 @@ OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 int T1 = 0;
 int T2 = 0;
+int power_save = 1;
 
 U8G2_SSD1306_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0);
 
-unsigned long Time1 = 0;
-unsigned long Time2 = 0;
-#define czas_opoznienia1 5000
-#define czas_opoznienia2 1000
+unsigned long time_of_bt_press = 0;
+unsigned delay_time = 10000;
 
 void setup() {
   sensors.begin();
   u8g2.begin();
-  pinMode(7, OUTPUT);
   pinMode(4, INPUT_PULLUP);
   Serial.begin(115200);
 }
 void loop() {
-  // if (millis() >= Time2 + czas_opoznienia2) {
-  //   Time2 += czas_opoznienia2;
-  if (digitalRead(4) == LOW) {
-    u8g2.setPowerSave(1);
-  } else {
-    u8g2.setPowerSave(0);
+  int button_state = digitalRead(4);
+
+  if (button_state == LOW && power_save == 1) {
+    power_save = 0;
+    time_of_bt_press = millis() + delay_time;
+    Serial.println("Display ON" + String(millis()) + " " + String(power_save));
+  }
+  if (power_save == 0) {
+    if (millis() >= time_of_bt_press) {
+      power_save = 1;
+      Serial.println("Display OFF" + String(millis()) + " " +
+                     String(power_save));
+    }
   }
 
   sensors.requestTemperatures();
   T1 = sensors.getTempCByIndex(0);
   T2 = sensors.getTempCByIndex(1);
-  // }
+
+  u8g2.setPowerSave(power_save);
   u8g2.firstPage();
   do {
+    u8g2.setContrast(255);
     u8g2.setFont(u8g2_font_fub30_tf);
     u8g2.setFontMode(1);
     u8g2.setCursor(0, 30);
-    u8g2.print("T1-" + String(T1));
+    u8g2.print("TZ: " + String(T1));
     u8g2.setCursor(0, 64);
-    u8g2.print("T2-" + String(T2));
-
+    u8g2.print("TW: " + String(T2));
   } while (u8g2.nextPage());
-  Serial.println("T1: " + String(T1));
-  Serial.println("T2: " + String(T2));
-
-  delay(1000);
-  /*
-    if (digitalRead(6) == HIGH) {
-      if (millis() >= czas_opoznienia1 + Time1) {
-        Time1 += czas_opoznienia1;
-        digitalWrite(7, HIGH);
-      }
-    } else
-      digitalWrite(7, LOW);
-      */
+  delay(50);
 }
