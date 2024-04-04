@@ -1,4 +1,3 @@
-// home temp measurement MF
 #include <Arduino.h>
 #include <DallasTemperature.h>
 #include <OneWire.h>
@@ -14,7 +13,8 @@ int power_save = 1;
 U8G2_SSD1306_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0);
 
 unsigned long time_of_bt_press = 0;
-unsigned delay_time = 10000;
+unsigned long time_var = 1000;
+unsigned delay_time = 5000;
 
 void setup() {
   sensors.begin();
@@ -37,11 +37,12 @@ void loop() {
                      String(power_save));
     }
   }
-
-  sensors.requestTemperatures();
-  T1 = sensors.getTempCByIndex(0);
-  T2 = sensors.getTempCByIndex(1);
-
+  if (millis() >= time_var) {
+    sensors.requestTemperatures();
+    T1 = sensors.getTempCByIndex(0);
+    T2 = sensors.getTempCByIndex(1);
+    time_var = millis() + 1000;
+  }
   u8g2.setPowerSave(power_save);
   u8g2.firstPage();
   do {
@@ -49,9 +50,9 @@ void loop() {
     u8g2.setFont(u8g2_font_fub30_tf);
     u8g2.setFontMode(1);
     u8g2.setCursor(0, 30);
-    u8g2.print("TZ: " + String(T1));
+    u8g2.print("TZ:" + String(T1));
     u8g2.setCursor(0, 64);
-    u8g2.print("TW: " + String(T2));
+    u8g2.print("TW:" + String(T2));
   } while (u8g2.nextPage());
-  delay(50);
+  delay(10);
 }
